@@ -1,0 +1,6 @@
+{
+  "name": "LevelUp - Cozy Gamified Life OS",
+  "description": "A cozy RPG-style gamified life operating system with quests, XP leveling, skill tree, garden, avatar & room customization, journal, analytics, and an anti-guilt AI coach.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

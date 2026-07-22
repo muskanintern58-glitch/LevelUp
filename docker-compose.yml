@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - MYSQL_HOST=db
+      - MYSQL_PORT=3306
+      - MYSQL_USER=levelup_user
+      - MYSQL_PASSWORD=levelup_pass
+      - MYSQL_DATABASE=levelup_db
+    depends_on:
+      - db
+    restart: always
+
+  db:
+    image: mysql:8.0
+    container_name: levelup_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: levelup_db
+      MYSQL_USER: levelup_user
+      MYSQL_PASSWORD: levelup_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    restart: always
+
+volumes:
+  mysql_data:
