@@ -46,7 +46,8 @@ export default function App() {
   const [dailyLogs, setDailyLogs] = useState<DailyXPLog[]>(LevelUpState.getDailyLogs());
 
   // UI State
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [activeTab, setActiveTab] = useState<string>('home');
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [darkMode, setDarkMode] = useState<boolean>(true);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
 
@@ -322,6 +323,11 @@ export default function App() {
         onOpenAICoach={() => setShowAICoach(true)}
         onOpenCodeHub={() => setShowCodeHub(true)}
         onOpenAuth={() => setShowAuthModal(true)}
+        isLoggedIn={isLoggedIn}
+        onLogout={() => {
+          setIsLoggedIn(false);
+          setActiveTab('home');
+        }}
       />
 
       {/* Main View Container */}
@@ -494,6 +500,9 @@ export default function App() {
         onResetData={handleResetData}
         onAuthSuccess={(authUser) => {
           setUser((prev) => ({ ...prev, ...authUser }));
+          setIsLoggedIn(true);
+          setShowAuthModal(false);
+          setActiveTab('dashboard');
         }}
       />
 

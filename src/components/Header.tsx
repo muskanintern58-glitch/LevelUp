@@ -19,7 +19,8 @@ import {
   Home,
   Gift,
   BarChart3,
-  LogIn
+  LogIn,
+  LogOut
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -33,6 +34,8 @@ interface HeaderProps {
   onOpenAICoach: () => void;
   onOpenCodeHub: () => void;
   onOpenAuth: () => void;
+  isLoggedIn?: boolean;
+  onLogout?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -46,6 +49,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAICoach,
   onOpenCodeHub,
   onOpenAuth,
+  isLoggedIn,
+  onLogout,
 }) => {
   const xpNeeded = getXpForNextLevel(user.level);
   const xpPercent = Math.min(100, Math.round((user.currentXp / xpNeeded) * 100));
@@ -187,13 +192,24 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             {/* Auth / Profile Button */}
-            <button
-              onClick={() => { soundEngine.playPop(); onOpenAuth(); }}
-              className="hidden sm:flex items-center space-x-1.5 px-3.5 py-2 rounded-2xl bg-[#118AB2] text-white font-black text-xs border-b-4 border-[#0E7494] hover:brightness-105 active:border-b-0 transition-all shadow-xs"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>{user.name}</span>
-            </button>
+            {isLoggedIn ? (
+              <button
+                onClick={() => { soundEngine.playPop(); onLogout && onLogout(); }}
+                className="hidden sm:flex items-center space-x-1.5 px-3.5 py-2 rounded-2xl bg-[#EF476F] text-white font-black text-xs border-b-4 border-[#C73859] hover:brightness-105 active:border-b-0 transition-all shadow-xs"
+                title="Log out of session"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Log Out ({user.name})</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => { soundEngine.playPop(); onOpenAuth(); }}
+                className="hidden sm:flex items-center space-x-1.5 px-3.5 py-2 rounded-2xl bg-[#118AB2] text-white font-black text-xs border-b-4 border-[#0E7494] hover:brightness-105 active:border-b-0 transition-all shadow-xs"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Log In / Sign Up</span>
+              </button>
+            )}
           </div>
 
         </div>
