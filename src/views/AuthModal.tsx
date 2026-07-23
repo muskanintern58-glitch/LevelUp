@@ -14,8 +14,8 @@ interface AuthModalProps {
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess, onResetData }) => {
   const [mode, setMode] = useState<'LOGIN' | 'SIGNUP' | 'FORGOT'>('LOGIN');
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('muskan@levelup.cozy');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [infoMsg, setInfoMsg] = useState('');
@@ -124,7 +124,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="muskan@levelup.cozy"
+              placeholder="e.g. user@levelup.cozy"
               className="w-full px-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-rose-400"
             />
           </div>
@@ -156,16 +156,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
 
         </form>
 
-        {/* Quick Demo & Reset Buttons */}
+        {/* Reset Progress Button */}
         <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 text-center space-y-2">
-          <button
-            type="button"
-            onClick={handleDemoAccount}
-            className="w-full py-2 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 font-bold text-xs hover:bg-amber-100 transition-colors"
-          >
-            ⚡ Auto-Fill Demo Student Credentials
-          </button>
-
           {onResetData && (
             <button
               type="button"

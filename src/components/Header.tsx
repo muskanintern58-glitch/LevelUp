@@ -51,10 +51,11 @@ export const Header: React.FC<HeaderProps> = ({
   const xpPercent = Math.min(100, Math.round((user.currentXp / xpNeeded) * 100));
 
   const navItems = [
+    { id: 'home', label: 'Home', icon: Home },
     { id: 'dashboard', label: 'Quests', icon: CheckSquare },
     { id: 'skilltree', label: 'Skill Tree', icon: Network },
     { id: 'garden', label: 'Garden', icon: Flower2 },
-    { id: 'room', label: 'Study Room', icon: Home },
+    { id: 'room', label: 'Study Room', icon: Sparkles },
     { id: 'avatar', label: 'Avatar', icon: UserIcon },
     { id: 'shop', label: 'Shop', icon: Gift },
     { id: 'analytics', label: 'Journal', icon: BarChart3 },
@@ -69,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Logo & Level Badge */}
           <div className="flex items-center space-x-3">
             <button 
-              onClick={() => { soundEngine.playPop(); setActiveTab('dashboard'); }}
+              onClick={() => { soundEngine.playPop(); setActiveTab('home'); }}
               className="flex items-center space-x-3 text-left group"
             >
               <div className="w-12 h-12 bg-[#FFD166] rounded-2xl border-4 border-[#F4A261] flex items-center justify-center text-xl shadow-xs group-hover:scale-105 transition-transform shrink-0">

@@ -30,6 +30,7 @@ import { GardenView } from './views/GardenView';
 import { AvatarView } from './views/AvatarView';
 import { RewardShopView } from './views/RewardShopView';
 import { AnalyticsJournalView } from './views/AnalyticsJournalView';
+import { LandingView } from './views/LandingView';
 import { AuthModal } from './views/AuthModal';
 
 export default function App() {
@@ -325,6 +326,17 @@ export default function App() {
 
       {/* Main View Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        {activeTab === 'home' && (
+          <LandingView
+            onOpenSignup={() => setShowAuthModal(true)}
+            onOpenLogin={() => setShowAuthModal(true)}
+            onExploreDemo={() => {
+              soundEngine.playPop();
+              setActiveTab('dashboard');
+            }}
+          />
+        )}
+
         {activeTab === 'dashboard' && (
           <DashboardView
             user={user}
@@ -362,8 +374,42 @@ export default function App() {
             onAddSkillTree={(newTree) => {
               setSkillDomains((prev) => [...prev, newTree]);
             }}
-            onAddSkillNode={(newNode) => {
-              setSkills((prev) => [...prev, newNode]);
+            onDeleteSkillTree={(treeId) => {
+              setSkillDomains((prev) => prev.filter((d) => d.id !== treeId));
+              setSkills((prev) => prev.filter((s) => s.domain !== treeId));
+            }}
+            onAddSkillNode={(newNode, insertAfterId) => {
+              setSkills((prev) => {
+                if (insertAfterId === 'START') {
+                  return [newNode, ...prev];
+                }
+                if (insertAfterId && insertAfterId !== 'END') {
+                  const idx = prev.findIndex((s) => s.id === insertAfterId);
+                  if (idx !== -1) {
+                    const updated = [...prev];
+                    updated.splice(idx + 1, 0, newNode);
+                    return updated;
+                  }
+                }
+                return [...prev, newNode];
+              });
+            }}
+            onDeleteSkillNode={(nodeId) => {
+              setSkills((prev) => prev.filter((s) => s.id !== nodeId));
+            }}
+            onMoveSkillNode={(nodeId, direction) => {
+              setSkills((prev) => {
+                const idx = prev.findIndex((s) => s.id === nodeId);
+                if (idx === -1) return prev;
+                const targetIdx = direction === 'UP' ? idx - 1 : idx + 1;
+                if (targetIdx < 0 || targetIdx >= prev.length) return prev;
+
+                const updated = [...prev];
+                const temp = updated[idx];
+                updated[idx] = updated[targetIdx];
+                updated[targetIdx] = temp;
+                return updated;
+              });
             }}
           />
         )}

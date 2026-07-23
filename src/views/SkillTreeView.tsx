@@ -13,7 +13,11 @@ import {
   ChevronRight,
   FolderPlus,
   X,
-  Layers
+  Layers,
+  Trash2,
+  ArrowUp,
+  CornerDownRight,
+  Edit3
 } from 'lucide-react';
 
 interface SkillTreeViewProps {
@@ -23,7 +27,10 @@ interface SkillTreeViewProps {
   onUnlockSkill: (skillId: string) => void;
   onAddPracticeQuest: (questTitle: string, category: CategoryType) => void;
   onAddSkillTree: (tree: SkillTreeCategory) => void;
-  onAddSkillNode: (node: SkillNode) => void;
+  onDeleteSkillTree: (treeId: string) => void;
+  onAddSkillNode: (node: SkillNode, insertAfterId?: string) => void;
+  onDeleteSkillNode: (nodeId: string) => void;
+  onMoveSkillNode: (nodeId: string, direction: 'UP' | 'DOWN') => void;
 }
 
 export const SkillTreeView: React.FC<SkillTreeViewProps> = ({
@@ -33,7 +40,10 @@ export const SkillTreeView: React.FC<SkillTreeViewProps> = ({
   onUnlockSkill,
   onAddPracticeQuest,
   onAddSkillTree,
+  onDeleteSkillTree,
   onAddSkillNode,
+  onDeleteSkillNode,
+  onMoveSkillNode,
 }) => {
   const [selectedDomain, setSelectedDomain] = useState<string>(skillDomains[0]?.id || 'JAVA');
   const [activeSkillNode, setActiveSkillNode] = useState<SkillNode | null>(
@@ -56,12 +66,12 @@ export const SkillTreeView: React.FC<SkillTreeViewProps> = ({
   const [newNodeIcon, setNewNodeIcon] = useState('⚡');
   const [newNodeHours, setNewNodeHours] = useState(5);
   const [newNodeQuests, setNewNodeQuests] = useState('');
+  const [insertAfterNodeId, setInsertAfterNodeId] = useState<string>('END');
 
   const currentDomainSkills = skills.filter((s) => s.domain === selectedDomain);
 
   const handleAddQuest = (questTitle: string) => {
     soundEngine.playTaskComplete();
-    // Default mapping or custom category fallback
     let cat: CategoryType = 'Coding';
     if (selectedDomain === 'JAVA') cat = 'Core Java';
     else if (selectedDomain === 'DSA') cat = 'DSA';
@@ -87,10 +97,29 @@ export const SkillTreeView: React.FC<SkillTreeViewProps> = ({
     onAddSkillTree(newCategory);
     setSelectedDomain(domainId);
 
-    // Reset form
     setNewTreeLabel('');
     setNewTreeIcon('🐍');
     setShowAddTreeModal(false);
+  };
+
+  const handleDeleteCurrentTree = () => {
+    if (skillDomains.length <= 1) {
+      alert('You must keep at least one active Skill Tree!');
+      return;
+    }
+    const currentDomainObj = skillDomains.find((d) => d.id === selectedDomain);
+    const confirmName = currentDomainObj ? currentDomainObj.label : selectedDomain;
+    
+    if (window.confirm(`Are you sure you want to delete the "${confirmName}" skill tree and all its nodes?`)) {
+      soundEngine.playPop();
+      onDeleteSkillTree(selectedDomain);
+      const remaining = skillDomains.filter((d) => d.id !== selectedDomain);
+      if (remaining.length > 0) {
+        setSelectedDomain(remaining[0].id);
+        const firstInDomain = skills.find((s) => s.domain === remaining[0].id);
+        setActiveSkillNode(firstInDomain || null);
+      }
+    }
   };
 
   const handleCreateSkillNode = (e: React.FormEvent) => {
@@ -109,7 +138,7 @@ export const SkillTreeView: React.FC<SkillTreeViewProps> = ({
       name: newNodeName.trim(),
       description: newNodeDesc.trim() || 'Custom progression topic.',
       levelRequired: Number(newNodeLevel) || 1,
-      prerequisiteIds: [],
+      prerequisiteIds: insertAfterNodeId !== 'END' && insertAfterNodeId !== 'START' ? [insertAfterNodeId] : [],
       unlocked: true,
       completed: false,
       icon: newNodeIcon || '⚡',
@@ -117,16 +146,16 @@ export const SkillTreeView: React.FC<SkillTreeViewProps> = ({
       practiceQuests: questsList.length > 0 ? questsList : [`Practice ${newNodeName.trim()} basics`],
     };
 
-    onAddSkillNode(newNode);
+    onAddSkillNode(newNode, insertAfterNodeId);
     setActiveSkillNode(newNode);
 
-    // Reset form
     setNewNodeName('');
     setNewNodeDesc('');
     setNewNodeLevel(1);
     setNewNodeIcon('⚡');
     setNewNodeHours(5);
     setNewNodeQuests('');
+    setInsertAfterNodeId('END');
     setShowAddNodeModal(false);
   };
 
@@ -146,7 +175,7 @@ export const SkillTreeView: React.FC<SkillTreeViewProps> = ({
             Visual Learning Path 🌳
           </h1>
           <p className="text-xs sm:text-sm font-semibold text-[#4A4A4A] dark:text-slate-300 max-w-lg mt-1">
-            Unlock nodes as you level up. Add custom skill trees and progression nodes anytime!
+            Build, edit, reorder, or delete skill trees and progression nodes anywhere in the learning path.
           </p>
         </div>
 
@@ -194,25 +223,38 @@ export const SkillTreeView: React.FC<SkillTreeViewProps> = ({
         
         {/* Visual Tree Progression Column (7 cols) */}
         <div className="lg:col-span-7 bg-white dark:bg-slate-800 rounded-[32px] p-6 sm:p-7 border-4 border-[#EAE6DF] dark:border-slate-700 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b-2 border-[#EAE6DF] dark:border-slate-700 pb-3">
-            <h3 className="font-black text-[#2D3142] dark:text-white text-sm uppercase tracking-wider flex items-center space-x-2">
+          <div className="flex items-center justify-between border-b-2 border-[#EAE6DF] dark:border-slate-700 pb-3 flex-wrap gap-2">
+            <div className="flex items-center space-x-2">
               <Layers className="w-4 h-4 text-[#118AB2]" />
-              <span>
+              <h3 className="font-black text-[#2D3142] dark:text-white text-sm uppercase tracking-wider">
                 {activeDomainInfo ? activeDomainInfo.label : 'Progression'} ({currentDomainSkills.length} Nodes)
-              </span>
-            </h3>
+              </h3>
+            </div>
 
-            {/* Add Node Button */}
-            <button
-              onClick={() => {
-                soundEngine.playPop();
-                setShowAddNodeModal(true);
-              }}
-              className="px-3 py-1.5 rounded-xl text-xs font-black bg-[#06D6A0] hover:brightness-105 text-slate-950 border-b-2 border-[#04A278] flex items-center space-x-1"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>+ Add Node</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              {/* Delete Active Skill Tree Button */}
+              <button
+                onClick={handleDeleteCurrentTree}
+                className="px-3 py-1.5 rounded-xl text-xs font-black bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 hover:bg-rose-200 flex items-center space-x-1"
+                title="Delete this entire skill tree"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Tree</span>
+              </button>
+
+              {/* Add Node Button */}
+              <button
+                onClick={() => {
+                  soundEngine.playPop();
+                  setInsertAfterNodeId('END');
+                  setShowAddNodeModal(true);
+                }}
+                className="px-3 py-1.5 rounded-xl text-xs font-black bg-[#06D6A0] hover:brightness-105 text-slate-950 border-b-2 border-[#04A278] flex items-center space-x-1"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Add Node</span>
+              </button>
+            </div>
           </div>
 
           <div className="relative space-y-3 py-2">
@@ -222,7 +264,10 @@ export const SkillTreeView: React.FC<SkillTreeViewProps> = ({
                   No progression nodes in this skill tree yet!
                 </p>
                 <button
-                  onClick={() => setShowAddNodeModal(true)}
+                  onClick={() => {
+                    setInsertAfterNodeId('END');
+                    setShowAddNodeModal(true);
+                  }}
                   className="px-4 py-2 rounded-2xl bg-[#06D6A0] text-slate-950 font-black text-xs border-b-2 border-[#04A278] hover:brightness-105"
                 >
                   + Add First Node
@@ -236,20 +281,29 @@ export const SkillTreeView: React.FC<SkillTreeViewProps> = ({
                 return (
                   <React.Fragment key={node.id}>
                     
-                    {/* Connector Arrow */}
+                    {/* Connector Arrow & Inline Insert Bar */}
                     {index > 0 && (
-                      <div className="flex justify-center py-1">
-                        <ArrowDown className="w-5 h-5 text-[#06D6A0] animate-bounce" />
+                      <div className="flex items-center justify-center py-1 group relative">
+                        <div className="w-full h-[2px] bg-[#EAE6DF] dark:bg-slate-700 absolute" />
+                        <button
+                          onClick={() => {
+                            soundEngine.playPop();
+                            const prevNode = currentDomainSkills[index - 1];
+                            setInsertAfterNodeId(prevNode.id);
+                            setShowAddNodeModal(true);
+                          }}
+                          className="relative z-10 px-3 py-1 rounded-full bg-[#E0F2FE] dark:bg-sky-950 text-[#118AB2] dark:text-sky-300 font-extrabold text-[10px] border border-[#BAE6FD] hover:scale-105 transition-transform flex items-center space-x-1 shadow-xs"
+                          title="Insert a node here in the middle of the tree"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Insert Node Here</span>
+                        </button>
                       </div>
                     )}
 
                     {/* Skill Node Box */}
-                    <button
-                      onClick={() => {
-                        soundEngine.playPop();
-                        setActiveSkillNode(node);
-                      }}
-                      className={`w-full p-4 rounded-2xl border-3 text-left transition-all duration-200 relative flex items-center justify-between ${
+                    <div
+                      className={`w-full p-4 rounded-2xl border-3 transition-all duration-200 relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                         isSelected
                           ? 'bg-[#FDF0D5] dark:bg-slate-700 border-[#F4A261] shadow-[3px_3px_0px_#F4A261]'
                           : node.completed
@@ -259,7 +313,13 @@ export const SkillTreeView: React.FC<SkillTreeViewProps> = ({
                           : 'bg-white dark:bg-slate-800 border-[#EAE6DF] dark:border-slate-700 hover:border-[#118AB2]'
                       }`}
                     >
-                      <div className="flex items-center space-x-3.5">
+                      <button
+                        onClick={() => {
+                          soundEngine.playPop();
+                          setActiveSkillNode(node);
+                        }}
+                        className="flex items-center space-x-3.5 text-left flex-1"
+                      >
                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 font-black border-2 ${
                           node.completed
                             ? 'bg-[#06D6A0] text-white border-[#05B386]'
@@ -286,16 +346,50 @@ export const SkillTreeView: React.FC<SkillTreeViewProps> = ({
                             {node.description}
                           </p>
                         </div>
-                      </div>
+                      </button>
 
-                      <div className="flex items-center space-x-2 text-[#9A8C98]">
-                        <span className="text-[10px] font-black px-2.5 py-1 rounded-xl bg-[#F8F9FA] dark:bg-slate-700 text-[#2D3142] dark:text-slate-300 border border-[#EAE6DF] dark:border-slate-600">
+                      {/* Controls: Reorder, Delete, Level badge */}
+                      <div className="flex items-center space-x-1.5 self-end sm:self-center shrink-0">
+                        <button
+                          onClick={() => onMoveSkillNode(node.id, 'UP')}
+                          disabled={index === 0}
+                          className="p-1.5 rounded-xl bg-[#F8F9FA] dark:bg-slate-700 text-[#2D3142] dark:text-slate-300 hover:bg-[#EAE6DF] disabled:opacity-30"
+                          title="Move node up"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          onClick={() => onMoveSkillNode(node.id, 'DOWN')}
+                          disabled={index === currentDomainSkills.length - 1}
+                          className="p-1.5 rounded-xl bg-[#F8F9FA] dark:bg-slate-700 text-[#2D3142] dark:text-slate-300 hover:bg-[#EAE6DF] disabled:opacity-30"
+                          title="Move node down"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Delete node "${node.name}"?`)) {
+                              soundEngine.playPop();
+                              onDeleteSkillNode(node.id);
+                              if (activeSkillNode?.id === node.id) {
+                                setActiveSkillNode(null);
+                              }
+                            }
+                          }}
+                          className="p-1.5 rounded-xl bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 hover:bg-rose-100"
+                          title="Delete node"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+
+                        <span className="text-[10px] font-black px-2.5 py-1 rounded-xl bg-[#F8F9FA] dark:bg-slate-700 text-[#2D3142] dark:text-slate-300 border border-[#EAE6DF] dark:border-slate-600 ml-1">
                           Lvl {node.levelRequired}
                         </span>
-                        <ChevronRight className="w-4 h-4" />
                       </div>
 
-                    </button>
+                    </div>
 
                   </React.Fragment>
                 );
@@ -478,6 +572,27 @@ export const SkillTreeView: React.FC<SkillTreeViewProps> = ({
             </div>
 
             <form onSubmit={handleCreateSkillNode} className="space-y-4">
+              
+              {/* Insert Position Selector */}
+              <div>
+                <label className="block text-xs font-black text-[#2D3142] dark:text-slate-300 uppercase mb-1">
+                  Insert Position in Skill Tree
+                </label>
+                <select
+                  value={insertAfterNodeId}
+                  onChange={(e) => setInsertAfterNodeId(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-2xl bg-[#F8F9FA] dark:bg-slate-800 border-2 border-[#EAE6DF] dark:border-slate-700 text-xs font-bold text-[#2D3142] dark:text-white focus:outline-hidden focus:border-[#06D6A0]"
+                >
+                  <option value="END">At End of Tree (Bottom)</option>
+                  <option value="START">At Beginning of Tree (Top)</option>
+                  {currentDomainSkills.map((n) => (
+                    <option key={n.id} value={n.id}>
+                      After Node: {n.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div>
                 <label className="block text-xs font-black text-[#2D3142] dark:text-slate-300 uppercase mb-1">
                   Node Title
