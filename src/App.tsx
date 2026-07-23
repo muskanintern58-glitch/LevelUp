@@ -34,20 +34,22 @@ import { LandingView } from './views/LandingView';
 import { AuthModal } from './views/AuthModal';
 
 export default function App() {
-  // State Initialization from LocalStorage or Default Presets
-  const [user, setUser] = useState<UserProfile>(LevelUpState.getUser());
-  const [tasks, setTasks] = useState<Task[]>(LevelUpState.getTasks());
-  const [skills, setSkills] = useState<SkillNode[]>(LevelUpState.getSkills());
-  const [skillDomains, setSkillDomains] = useState<SkillTreeCategory[]>(LevelUpState.getSkillDomains());
-  const [plants, setPlants] = useState<FlowerPlant[]>(LevelUpState.getPlants());
-  const [roomDecor, setRoomDecor] = useState<RoomDecorItem[]>(LevelUpState.getRoom());
-  const [rewards, setRewards] = useState<RewardItem[]>(LevelUpState.getRewards());
-  const [journal, setJournal] = useState<JournalEntry[]>(LevelUpState.getJournal());
-  const [dailyLogs, setDailyLogs] = useState<DailyXPLog[]>(LevelUpState.getDailyLogs());
+  const [activeEmail, setActiveEmail] = useState<string | null>(() => localStorage.getItem('levelup_active_email'));
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => !!localStorage.getItem('levelup_active_email'));
+
+  // State Initialization from LocalStorage or Default Presets (user account isolated)
+  const [user, setUser] = useState<UserProfile>(() => LevelUpState.getUser(activeEmail || undefined));
+  const [tasks, setTasks] = useState<Task[]>(() => LevelUpState.getTasks(activeEmail || undefined));
+  const [skills, setSkills] = useState<SkillNode[]>(() => LevelUpState.getSkills(activeEmail || undefined));
+  const [skillDomains, setSkillDomains] = useState<SkillTreeCategory[]>(() => LevelUpState.getSkillDomains(activeEmail || undefined));
+  const [plants, setPlants] = useState<FlowerPlant[]>(() => LevelUpState.getPlants(activeEmail || undefined));
+  const [roomDecor, setRoomDecor] = useState<RoomDecorItem[]>(() => LevelUpState.getRoom(activeEmail || undefined));
+  const [rewards, setRewards] = useState<RewardItem[]>(() => LevelUpState.getRewards(activeEmail || undefined));
+  const [journal, setJournal] = useState<JournalEntry[]>(() => LevelUpState.getJournal(activeEmail || undefined));
+  const [dailyLogs, setDailyLogs] = useState<DailyXPLog[]>(() => LevelUpState.getDailyLogs(activeEmail || undefined));
 
   // UI State
-  const [activeTab, setActiveTab] = useState<string>('home');
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>(isLoggedIn ? 'dashboard' : 'home');
   const [darkMode, setDarkMode] = useState<boolean>(true);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
 
@@ -60,16 +62,29 @@ export default function App() {
   const [newTaskCategory, setNewTaskCategory] = useState<CategoryType>('Core Java');
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
 
-  // Synchronize state changes to LocalStorage
-  useEffect(() => { LevelUpState.saveUser(user); }, [user]);
-  useEffect(() => { LevelUpState.saveTasks(tasks); }, [tasks]);
-  useEffect(() => { LevelUpState.saveSkills(skills); }, [skills]);
-  useEffect(() => { LevelUpState.saveSkillDomains(skillDomains); }, [skillDomains]);
-  useEffect(() => { LevelUpState.savePlants(plants); }, [plants]);
-  useEffect(() => { LevelUpState.saveRoom(roomDecor); }, [roomDecor]);
-  useEffect(() => { LevelUpState.saveRewards(rewards); }, [rewards]);
-  useEffect(() => { LevelUpState.saveJournal(journal); }, [journal]);
-  useEffect(() => { LevelUpState.saveDailyLogs(dailyLogs); }, [dailyLogs]);
+  // Load User Account Data when Active Email changes
+  const loadAccountData = (email?: string) => {
+    setUser(LevelUpState.getUser(email));
+    setTasks(LevelUpState.getTasks(email));
+    setSkills(LevelUpState.getSkills(email));
+    setSkillDomains(LevelUpState.getSkillDomains(email));
+    setPlants(LevelUpState.getPlants(email));
+    setRoomDecor(LevelUpState.getRoom(email));
+    setRewards(LevelUpState.getRewards(email));
+    setJournal(LevelUpState.getJournal(email));
+    setDailyLogs(LevelUpState.getDailyLogs(email));
+  };
+
+  // Synchronize state changes to LocalStorage for active account
+  useEffect(() => { LevelUpState.saveUser(user, activeEmail || undefined); }, [user, activeEmail]);
+  useEffect(() => { LevelUpState.saveTasks(tasks, activeEmail || undefined); }, [tasks, activeEmail]);
+  useEffect(() => { LevelUpState.saveSkills(skills, activeEmail || undefined); }, [skills, activeEmail]);
+  useEffect(() => { LevelUpState.saveSkillDomains(skillDomains, activeEmail || undefined); }, [skillDomains, activeEmail]);
+  useEffect(() => { LevelUpState.savePlants(plants, activeEmail || undefined); }, [plants, activeEmail]);
+  useEffect(() => { LevelUpState.saveRoom(roomDecor, activeEmail || undefined); }, [roomDecor, activeEmail]);
+  useEffect(() => { LevelUpState.saveRewards(rewards, activeEmail || undefined); }, [rewards, activeEmail]);
+  useEffect(() => { LevelUpState.saveJournal(journal, activeEmail || undefined); }, [journal, activeEmail]);
+  useEffect(() => { LevelUpState.saveDailyLogs(dailyLogs, activeEmail || undefined); }, [dailyLogs, activeEmail]);
 
   // Handle Dark Mode Document Class
   useEffect(() => {
@@ -83,18 +98,21 @@ export default function App() {
     }
   }, [darkMode]);
 
-  // Reset Progress Handler
+  // Reset Account Progress Handler (for logged-in user)
   const handleResetData = () => {
-    LevelUpState.resetAllData();
-    setUser(LevelUpState.getUser());
-    setTasks(LevelUpState.getTasks());
-    setSkills(LevelUpState.getSkills());
-    setSkillDomains(LevelUpState.getSkillDomains());
-    setPlants(LevelUpState.getPlants());
-    setRoomDecor(LevelUpState.getRoom());
-    setRewards(LevelUpState.getRewards());
-    setJournal(LevelUpState.getJournal());
-    setDailyLogs(LevelUpState.getDailyLogs());
+    const targetEmail = activeEmail || undefined;
+    
+    if (activeEmail) {
+      fetch('/api/auth/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: activeEmail }),
+      }).catch((e) => console.warn('Server reset notice failed', e));
+    }
+
+    LevelUpState.resetUserData(targetEmail);
+    loadAccountData(targetEmail);
+    soundEngine.playTaskComplete();
   };
 
   // Handle Task Completion & Level Up Engine
@@ -324,8 +342,12 @@ export default function App() {
         onOpenCodeHub={() => setShowCodeHub(true)}
         onOpenAuth={() => setShowAuthModal(true)}
         isLoggedIn={isLoggedIn}
+        onResetData={handleResetData}
         onLogout={() => {
+          localStorage.removeItem('levelup_active_email');
+          setActiveEmail(null);
           setIsLoggedIn(false);
+          loadAccountData(undefined);
           setActiveTab('home');
         }}
       />
@@ -497,9 +519,11 @@ export default function App() {
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
-        onResetData={handleResetData}
         onAuthSuccess={(authUser) => {
-          setUser((prev) => ({ ...prev, ...authUser }));
+          localStorage.setItem('levelup_active_email', authUser.email);
+          setActiveEmail(authUser.email);
+          LevelUpState.saveUser(authUser, authUser.email);
+          loadAccountData(authUser.email);
           setIsLoggedIn(true);
           setShowAuthModal(false);
           setActiveTab('dashboard');

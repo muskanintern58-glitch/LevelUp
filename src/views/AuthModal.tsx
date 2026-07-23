@@ -156,33 +156,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
 
         </form>
 
-        {/* Reset Progress Button */}
-        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 text-center space-y-2">
-          {onResetData && (
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm('Reset all progress and start fresh from Level 1?')) {
-                  soundEngine.playPop();
-                  onResetData();
-                  onClose();
-                }
-              }}
-              className="w-full py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/60 text-rose-700 dark:text-rose-300 font-black text-[11px] hover:bg-rose-100 transition-colors"
-            >
-              🔄 Start Fresh from Level 1 (Reset Data)
-            </button>
-          )}
-
-          <div className="flex justify-center space-x-3 text-[11px] font-bold text-slate-500 dark:text-slate-400 pt-1">
+        {/* Mode Switcher */}
+        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 text-center">
+          <div className="flex justify-center space-x-3 text-[11px] font-bold text-slate-500 dark:text-slate-400">
             {mode === 'LOGIN' ? (
               <>
-                <button onClick={() => setMode('SIGNUP')} className="hover:text-rose-500">Create Account</button>
+                <button type="button" onClick={() => setMode('SIGNUP')} className="hover:text-rose-500">Create Account</button>
                 <span>•</span>
-                <button onClick={() => setMode('FORGOT')} className="hover:text-rose-500">Forgot Password?</button>
+                <button type="button" onClick={() => setMode('FORGOT')} className="hover:text-rose-500">Forgot Password?</button>
               </>
             ) : (
-              <button onClick={() => setMode('LOGIN')} className="hover:text-rose-500">Back to Login</button>
+              <button type="button" onClick={() => setMode('LOGIN')} className="hover:text-rose-500">Back to Login</button>
             )}
           </div>
         </div>

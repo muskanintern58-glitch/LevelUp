@@ -1,7 +1,11 @@
 import express from 'express';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
@@ -19,27 +23,75 @@ async function startServer() {
     },
   });
 
-  // Authentication REST endpoints (JWT simulation)
+  // User Database in memory (supports isolated accounts per email)
+  interface ServerUser {
+    id: string;
+    name: string;
+    email: string;
+    password?: string;
+    level: number;
+    currentXp: number;
+    coins: number;
+    currentStreak: number;
+    longestStreak: number;
+    todayGoalXp: number;
+    title: string;
+  }
+
+  const usersDb = new Map<string, ServerUser>();
+  
+  // Seed demo Muskan account
+  usersDb.set('muskan@levelup.cozy', {
+    id: 'user_muskan',
+    name: 'Muskan',
+    email: 'muskan@levelup.cozy',
+    password: 'password123',
+    level: 3,
+    currentXp: 85,
+    coins: 140,
+    currentStreak: 5,
+    longestStreak: 12,
+    todayGoalXp: 50,
+    title: 'Cozy Java Adventurer',
+  });
+
+  // Authentication REST endpoints
   app.post('/api/auth/login', (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
-    const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzEiLCJuYW1lIjoiTXVza2FuIiwiaWF0IjoxNTE2MjM5MDIyfQ.sample_jwt_token';
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    let existingUser = usersDb.get(cleanEmail);
+
+    if (!existingUser) {
+      // Create user profile on login if signing in for first time
+      const emailPrefix = cleanEmail.split('@')[0].replace(/[._-]/g, ' ');
+      const displayName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+      existingUser = {
+        id: 'user_' + Date.now(),
+        name: displayName || 'Cozy Adventurer',
+        email: cleanEmail,
+        password,
+        level: 1,
+        currentXp: 0,
+        coins: 100,
+        currentStreak: 1,
+        longestStreak: 1,
+        todayGoalXp: 50,
+        title: 'Novice Adventurer',
+      };
+      usersDb.set(cleanEmail, existingUser);
+    } else if (existingUser.password && existingUser.password !== password) {
+      return res.status(401).json({ message: 'Invalid password. Please check your credentials.' });
+    }
+
+    const token = `token_${existingUser.id}_${Date.now()}`;
+    const { password: _, ...safeUser } = existingUser;
     return res.json({
       token,
-      user: {
-        id: 'user_1',
-        name: 'Muskan',
-        email,
-        level: 3,
-        currentXp: 85,
-        coins: 140,
-        currentStreak: 5,
-        longestStreak: 12,
-        todayGoalXp: 50,
-        title: 'Cozy Java Adventurer',
-      },
+      user: safeUser,
     });
   });
 
@@ -48,22 +100,52 @@ async function startServer() {
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Name, email and password are required' });
     }
-    const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.new_user_token';
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    if (usersDb.has(cleanEmail)) {
+      return res.status(400).json({ message: 'An account with this email already exists. Please log in.' });
+    }
+
+    const newUser: ServerUser = {
+      id: 'user_' + Date.now(),
+      name: String(name).trim(),
+      email: cleanEmail,
+      password,
+      level: 1,
+      currentXp: 0,
+      coins: 100, // Welcome gift
+      currentStreak: 1,
+      longestStreak: 1,
+      todayGoalXp: 50,
+      title: 'Novice Adventurer',
+    };
+    usersDb.set(cleanEmail, newUser);
+
+    const token = `token_${newUser.id}_${Date.now()}`;
+    const { password: _, ...safeUser } = newUser;
     return res.json({
       token,
-      user: {
-        id: 'user_' + Date.now(),
-        name,
-        email,
-        level: 1,
-        currentXp: 0,
-        coins: 50, // Welcome gift!
-        currentStreak: 1,
-        longestStreak: 1,
-        todayGoalXp: 50,
-        title: 'Novice Adventurer',
-      },
+      user: safeUser,
     });
+  });
+
+  app.post('/api/auth/reset', (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: 'Email required' });
+    }
+    const cleanEmail = String(email).trim().toLowerCase();
+    const existing = usersDb.get(cleanEmail);
+    if (existing) {
+      existing.level = 1;
+      existing.currentXp = 0;
+      existing.coins = 100;
+      existing.currentStreak = 1;
+      existing.longestStreak = 1;
+      existing.title = 'Novice Adventurer';
+      usersDb.set(cleanEmail, existing);
+    }
+    return res.json({ status: 'ok', message: 'Account progress reset to Level 1' });
   });
 
   app.post('/api/auth/forgot-password', (req, res) => {
